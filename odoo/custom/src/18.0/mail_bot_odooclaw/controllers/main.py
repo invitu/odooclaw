@@ -36,6 +36,7 @@ class OdooClawController(http.Controller):
             attachment_ids = payload.get("attachment_ids", [])
             voice_metadata_ids = payload.get("voice_metadata_ids", [])
             reply_token = payload.get("reply_token", "")
+            session_token = payload.get("session_token", "")
 
             if not model_name or not res_id:
                 return security.error_response("Missing parameters")
@@ -55,6 +56,13 @@ class OdooClawController(http.Controller):
                 .sudo()
                 ._validate(reply_token, model_name, res_id)
             )
+            if not token_valid:
+                # Fallback: validate session token (for sub-agent replies)
+                token_valid = (
+                    request.env["mail.odooclaw.session.token"]
+                    .sudo()
+                    ._validate(session_token, model_name, res_id)
+                )
             if not token_valid:
                 return request.make_json_response(
                     {"status": "error", "reason": "Invalid or expired reply_token"},

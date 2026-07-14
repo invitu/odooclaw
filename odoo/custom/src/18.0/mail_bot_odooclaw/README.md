@@ -215,6 +215,33 @@ To adjust the TTL:
 A scheduled action runs hourly to purge expired and consumed tokens:
 **Settings → Technical → Scheduled Actions → OdooClaw: Clean up expired reply tokens**
 
+
+## Session Token (Sub-agent Fallback)
+
+To support sub-agent replies without breaking the single-use reply token
+mechanism, this module also generates a **sliding-TTL session token** alongside
+the reply token on each webhook dispatch.
+
+### How it works
+
+1. Odoo generates both a `reply_token` (single-use) and a `session_token`
+   (multi-use) and includes both in the webhook payload.
+2. OdooClaw uses the `reply_token` for the first reply.
+3. If the `reply_token` is already consumed (e.g. by a main agent response),
+   sub-agents fall back to the `session_token`.
+4. The session token TTL resets on each use (sliding window).
+
+### Configuration
+
+| System Parameter | Default | Description |
+|---|---|---|
+| `odooclaw.session_token_ttl` | `1800` | Session lifetime in seconds (sliding) |
+
+### Cleanup
+
+A scheduled action runs hourly to purge expired session tokens:
+**Settings → Technical → Scheduled Actions → OdooClaw: Clean up expired session tokens**
+
 ## Installation
 
 1. Make sure you have the base `mail` module installed.

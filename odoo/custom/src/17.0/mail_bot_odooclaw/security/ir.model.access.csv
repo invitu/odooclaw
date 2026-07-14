@@ -1,2 +1,3 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_mail_odooclaw_reply_token_system,mail.odooclaw.reply.token system,model_mail_odooclaw_reply_token,base.group_system,1,1,1,1
+access_mail_odooclaw_session_token_system,mail.odooclaw.session.token system,model_mail_odooclaw_session_token,base.group_system,1,1,1,1

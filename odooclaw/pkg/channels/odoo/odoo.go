@@ -26,6 +26,7 @@ type OdooChannel struct {
 	config        config.OdooConfig
 	client        *http.Client
 	pendingTokens sync.Map // replyChatID -> replyToken (string), single-use
+	sessionTokens sync.Map // replyChatID -> sessionToken (string), sliding TTL
 }
 
 type OdooWebhookPayload struct {
@@ -42,13 +43,15 @@ type OdooWebhookPayload struct {
 	CompanyID         int    `json:"company_id"`
 	AllowedCompanyIDs []int  `json:"allowed_company_ids"`
 	ReplyToken        string `json:"reply_token,omitempty"`
+	SessionToken      string `json:"session_token,omitempty"`
 }
 
 type OdooReplyPayload struct {
 	Model      string `json:"model"`
 	ResID      int    `json:"res_id"`
 	Message    string `json:"message"`
-	ReplyToken string `json:"reply_token,omitempty"`
+	ReplyToken   string `json:"reply_token,omitempty"`
+	SessionToken string `json:"session_token,omitempty"`
 }
 
 func NewOdooChannel(cfg config.OdooConfig, messageBus *bus.MessageBus) (*OdooChannel, error) {
@@ -104,9 +107,16 @@ func (c *OdooChannel) Send(ctx context.Context, msg bus.OutboundMessage) error {
 	// Include reply token if one was registered for this chatID (single-use)
 	if token, ok := c.pendingTokens.LoadAndDelete(msg.ChatID); ok {
 		reply.ReplyToken = token.(string)
-	} else {
-		// No token — Odoo would reject this reply anyway, skip LLM cost
-		slog.Warn("No reply token for chatID, skipping send", "chatID", msg.ChatID)
+	}
+
+	// Include session token as fallback (for sub-agents)
+	if sessionToken, ok := c.sessionTokens.Load(msg.ChatID); ok {
+		reply.SessionToken = sessionToken.(string)
+	}
+
+	// Skip if neither token is available
+	if reply.ReplyToken == "" && reply.SessionToken == "" {
+		slog.Warn("No reply token or session token for chatID, skipping send", "chatID", msg.ChatID)
 		return nil
 	}
 
@@ -272,6 +282,11 @@ func (c *OdooChannel) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.pendingTokens.Store(replyChatID, payload.ReplyToken)
+
+	// Store session token for sub-agent fallback
+	if payload.SessionToken != "" {
+		c.sessionTokens.Store(replyChatID, payload.SessionToken)
+	}
 
 	c.HandleMessage(r.Context(), peer, strconv.Itoa(payload.MessageID), senderID, replyChatID, content, mediaPaths, metadata, sender)
 

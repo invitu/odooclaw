@@ -134,6 +134,13 @@ class MailThread(models.AbstractModel):
             )
             payload["reply_token"] = reply_token_rec.token
 
+            # Generate/refresh session token — fallback for sub-agents
+            session_token_rec = self.env["mail.odooclaw.session.token"].sudo()._get_or_create(
+                model=payload["reply_model"],
+                res_id=payload["reply_res_id"],
+            )
+            payload["session_token"] = session_token_rec.token
+
             webhook_url = (
                 self.env["ir.config_parameter"]
                 .sudo()
