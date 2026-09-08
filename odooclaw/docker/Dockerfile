@@ -49,6 +49,8 @@ RUN pip install --no-cache-dir \
     requests \
     edge-tts \
     aiohttp \
+    httpx \
+    beautifulsoup4 \
     openai-whisper
 
 # Pre-download whisper model small (so it doesn't download on first use)
@@ -86,6 +88,10 @@ COPY workspace/skills/rlm-utils/server.py /usr/local/bin/rlm-utils-mcp.py
 RUN printf '#!/usr/bin/env python3\n' | cat - /usr/local/bin/rlm-utils-mcp.py > /tmp/rlm-utils-mcp.py && \
     mv /tmp/rlm-utils-mcp.py /usr/local/bin/rlm-utils-mcp.py && \
     chmod +x /usr/local/bin/rlm-utils-mcp.py
+
+# Copy Web Browser MCP server script
+COPY workspace/skills/web-browser/server.py /usr/local/bin/web-browser-mcp.py
+RUN chmod +x /usr/local/bin/web-browser-mcp.py
 
 # Create cache directory for whisper models
 RUN mkdir -p /home/odooclaw/.cache && \

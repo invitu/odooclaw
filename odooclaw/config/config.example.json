@@ -328,6 +328,14 @@
             "PYTHONUNBUFFERED": "1"
           }
         },
+        "web-browser": {
+            "enabled": true,
+            "command": "web-browser-mcp.py",
+            "args": [],
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            }
+        },
         "ocr-invoice": {
           "enabled": true,
           "command": "ocr-invoice-mcp.py",
